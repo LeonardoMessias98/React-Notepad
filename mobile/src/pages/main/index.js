@@ -1,62 +1,87 @@
-import React, { useState ,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, View, FlatList, TouchableOpacity, AsyncStorage } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import { Feather } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native';
 
 import styles from './style';
 
 
+export default function App() {
 
-
-export default function App({data}) {
-
-  const [array,setArray] = useState(null);
+  const [array,setArray] = useState([]);
   
-  useEffect(()=>{
-    console.log("recarregou")
-    async function getAllValues(){
+  async function getAllValues(){
+    let data;
 
-
-      if(data === null){
-        return
-      }
-      
-      setArray([...array,data]);
-      console.log(array,data);     
+    try{
+      data = await AsyncStorage.getItem("@RNP");
+    }catch{
+      console.log("deu merda")
     }
-    getAllValues();
+
+    let newData = JSON.parse(data)
+    
+    const getArray = array.find(i=> i.id === newData[0])
+
+    if(getArray !== undefined){
+      console.log("ja esta")
+      return
+    }
+
+    let object = {
+      id:newData[0],
+      title:newData[1],
+      text:newData[2]
+    }
+
+    setArray([...array,object])
+
+  }
+
+  useEffect(()=>{
+    getAllValues()
   },[])
   
   const navigation = useNavigation();
 
-  function navigateToNote(){
-    navigation.navigate('Note');
+  function navigateToNote(item,newFile){
+    if(!newFile){
+      navigation.navigate('Note',item);
+    }else{
+      navigation.navigate('Note');
+    }
   }
 
   return (
     <>
       <View style={styles.header}>
         <Text style={styles.textHeader}>React Notepad</Text>
-        <TouchableOpacity onPress={navigateToNote}>
+        <TouchableOpacity onPress={()=>{navigateToNote('',true)}}>
           <Feather style={styles.close} name="file-text"/>
         </TouchableOpacity>
       </View>
-      { !!array ? <FlatList
+      <View>
+          <TouchableOpacity onPress={getAllValues}>
+            <Feather name="rotate-cw" style={styles.close} />
+          </TouchableOpacity>
+      </View>
+      { array ? <FlatList
         data ={array}
         keyExtractor={post => String(post.id)}
         renderItem={({item})=>(
           <View style={styles.container}>
             <View style={styles.content}>
-              <TouchableOpacity style={styles.btn} onPress={navigateToNote}>
+              <TouchableOpacity style={styles.btn} onPress={()=>{navigateToNote(item,false)}}>
                 <Feather style={styles.edit} name="edit"/>
-                <Text style={styles.texto}>{item.title.slice(0,115)}</Text>
+                <Text style={styles.texto}>{item.title}</Text>
               </TouchableOpacity>
               <Feather style={styles.close} name="trash"/>
             </View>
           </View>
         )}
         
-      />: <Text></Text>}
+      />
+      :<Text>Array nulo</Text>}
     </>
   );
 }

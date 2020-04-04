@@ -34,7 +34,7 @@ export default StyleSheet.create({
     backgroundColor: "white"
   },
   texto:{
-    left:80,
+    left:"35%",
     fontWeight:"900",
     fontSize:30
   },

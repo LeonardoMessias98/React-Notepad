@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState,useEffect } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Text, View, TextInput, TouchableOpacity, AsyncStorage, Alert} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
@@ -9,22 +9,39 @@ export default function App() {
   const [titleValue,setTitleValue] = useState('');
   const [textValue, setTextValue ] = useState('');
   const navigation = useNavigation();
+  const route = useRoute();
 
+  const item = route.params;  
+
+  useEffect(()=>{
+    editFile();
+  },[]);
+
+  function editFile(){
+    if(item === undefined){return}
+
+    setTextValue(item.text);
+    setTitleValue(item.title);
+    
+  }
 
   function goBack(){
     navigation.goBack();
   }
 
   async function saveFile(){
+
     const data = [Math.random().toString(36).substr(2, 9),titleValue,textValue]
 
     console.log('entrou na função');
+
     try{
-      Alert.alert("Sucesso","Cadastrado com sucesso");
-      navigation.navigate('Main',data)
+      await AsyncStorage.setItem("@RNP",JSON.stringify(data));
+
     }catch(err){
       console.log(err,"Não foi");
     }
+    Alert.alert("Sucesso","Cadastrado com sucesso");
   }
 
   return (
