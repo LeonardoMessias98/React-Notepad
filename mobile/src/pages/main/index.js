@@ -1,45 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, FlatList, TouchableOpacity, AsyncStorage } from 'react-native';
+import { Text, View, FlatList, TouchableOpacity, Alert, RefreshControl, StatusBar, } from 'react-native';
 import { Feather } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native';
-
+import api from'../../../services/api';
 import styles from './style';
 
 
 export default function App() {
 
-  const [array,setArray] = useState([]);
+  const [files,setFiles] = useState();
+
+  function wait(timeout) {
+    return new Promise(resolve => {
+      setTimeout(resolve, timeout);
+    });
+  }
+
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+
+    getAllValues();
+
+    wait(2000).then(() => setRefreshing(false));
+  }, [refreshing]);
+
+
+
+  async function deleteFile(which){
+    api.delete(`files/${which}`);
+    Alert.alert("Sucess","File Deleted");
+    getAllValues();
+  }
   
   async function getAllValues(){
-    let data;
+    const dataReceived = await api.get("/files");
 
-    try{
-      data = await AsyncStorage.getItem("@RNP");
-    }catch{
-      console.log("deu merda")
-    }
-
-    let newData = JSON.parse(data)
-    
-    const getArray = array.find(i=> i.id === newData[0])
-
-    if(getArray !== undefined){
-      console.log("ja esta")
-      return
-    }
-
-    let object = {
-      id:newData[0],
-      title:newData[1],
-      text:newData[2]
-    }
-
-    setArray([...array,object])
-
+    setFiles(dataReceived.data);
   }
 
   useEffect(()=>{
-    getAllValues()
+    getAllValues();
   },[])
   
   const navigation = useNavigation();
@@ -55,33 +57,40 @@ export default function App() {
   return (
     <>
       <View style={styles.header}>
+        <StatusBar 
+          hidden={false}
+          backgroundColor="#e02041"
+          />
         <Text style={styles.textHeader}>React Notepad</Text>
-        <TouchableOpacity onPress={()=>{navigateToNote('',true)}}>
-          <Feather style={styles.close} name="file-text"/>
+        <TouchableOpacity style={styles.touchableNewFile} onPress={()=>{navigateToNote('',true)}}>
+          <Feather style={styles.newFile} name="file-text"/>
         </TouchableOpacity>
       </View>
-      <View>
-          <TouchableOpacity onPress={getAllValues}>
-            <Feather name="rotate-cw" style={styles.close} />
-          </TouchableOpacity>
-      </View>
-      { array ? <FlatList
-        data ={array}
+      
+      { files ? <FlatList
+        style={styles.flatlist}
+        data ={files}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         keyExtractor={post => String(post.id)}
         renderItem={({item})=>(
           <View style={styles.container}>
             <View style={styles.content}>
               <TouchableOpacity style={styles.btn} onPress={()=>{navigateToNote(item,false)}}>
-                <Feather style={styles.edit} name="edit"/>
-                <Text style={styles.texto}>{item.title}</Text>
+                
+                <Text style={styles.texto}>{(item.title)}</Text>
+                
               </TouchableOpacity>
-              <Feather style={styles.close} name="trash"/>
+              <View>
+                <Feather style={styles.delete} onPress={()=>{deleteFile(item.id)}} name="trash"/>
+              </View>
             </View>
           </View>
         )}
         
       />
-      :<Text>Array nulo</Text>}
+      :<Text>files nulo</Text>}
     </>
   );
 }
